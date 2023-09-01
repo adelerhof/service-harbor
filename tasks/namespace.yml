@@ -1,0 +1,15 @@
+---
+# not needed done via helm
+
+- name: Check if namespace harbor exists
+  kubectl:
+    command: get
+    args: namespace "{{ harbor.namespace }}"
+  register: namespace_harbor_exists
+  ignore_errors: True
+
+- name: Create namespace harbor
+  when: namespace_harbor_exists is failed
+  kubectl:
+    command: apply
+    template: harbor-namespace.yml.j2

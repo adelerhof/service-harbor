@@ -1,0 +1,10 @@
+---
+
+# - include_tasks: namespace.yml
+# - include_tasks: netpol.yml
+# - include_tasks: password.yml
+# - include_tasks: ldap.yml
+# - include_tasks: github.yml
+- include_tasks: helm_chart.yml
+- include_tasks: deploy_harbor.yml
+# - include_tasks: configure.yml

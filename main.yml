@@ -1,0 +1,16 @@
+---
+- name: Template server config
+  hosts: servers
+  # gather_facts: true
+  # become: true
+  # become_user: root
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Ping test
+      ping:
+
+    - include_tasks: tasks/harbor.yml
+      when: inventory_hostname == "k8smaster.ansible"
+    # - include_tasks: tasks/sshguard.yml
+    #   when: inventory_hostname == "template.ansible"

@@ -1,0 +1,7 @@
+---
+
+- name: Add harbor2 helm chart repo
+  kubernetes.core.helm_repository:
+    # binary_path: /opt/bin/helm
+    name: harbor
+    repo_url: "https://helm.goharbor.io"

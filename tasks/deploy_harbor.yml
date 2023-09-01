@@ -1,0 +1,10 @@
+- name: Deploy harbor in harbor namespace
+  kubernetes.core.helm:
+    name: harbor
+    # binary_path: /opt/bin/helm
+    chart_ref: harbor/harbor
+    chart_version: "{{ harbor.harbor_helm_chart_version }}"
+    release_namespace: "{{ harbor.namespace }}"
+    create_namespace: true
+    release_values: "{{ harbor_helm_chart_values }}"
+    update_repo_cache: True

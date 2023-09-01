@@ -1,0 +1,20 @@
+#eval "$(ssh-agent -s)"
+#ssh-add ~/.ssh/jumphost
+#ansible_python_interpreter: /usr/local/bin/python3
+
+
+
+[servers]
+; teamspeak.adelerhof.eu
+; proxmox.ansible
+; harbor.ansible
+; varnish.ansible
+; template.ansible
+k8smaster.ansible
+
+[servers:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ProxyCommand="ssh -W %h:%p -q erik@jumphost"'
+ansible_ssh_user=erik
+#ansible_python_interpreter=auto
+
+

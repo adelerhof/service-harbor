@@ -1,0 +1,17 @@
+---
+apiVersion: {{ k8sNPApiVersion }}
+kind: NetworkPolicy
+metadata:
+  name: allow-harbor-to-ldap
+  namespace: "{{ ldap_namespace }}"
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: harbor
+  podSelector:
+    matchLabels:
+      app: ldap
+  policyTypes:
+  - Ingress

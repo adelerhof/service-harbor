@@ -1,0 +1,4 @@
+- name: Create Harbor LDAP netpol
+  kubectl:
+    command: "apply"
+    template: "harbor-ldap-netpol.yml.j2"

@@ -1,0 +1,169 @@
+---
+
+- name: Test Harbor api is up and running
+  uri:
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/users"
+    validate_certs: false
+    return_content: yes
+    status_code: [200,401]
+  register: harbor_response
+  until: harbor_response['status']|default(0) in [200,401]
+  retries: 100
+  delay: 5
+
+- name: Check default admin password
+  uri:
+    user: "admin"
+    password: "{{ harbor.initial_admin_pw }}"
+    force_basic_auth: yes
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/users"
+    validate_certs: false
+    return_content: yes
+    status_code: [200,400,401,404]
+  register: harbor_admin_check
+
+- name: Configure admin password
+  when: harbor_admin_check.status == 200
+  uri:
+    user: "admin"
+    password: "{{ harbor.initial_admin_pw }}"
+    force_basic_auth: yes
+    follow_redirects: no
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/users/1/password"
+    validate_certs: false
+    method: PUT
+    headers:
+      Content-Type: "application/json"
+    body:
+      new_password: "{{ harbor_admin_pw }}"
+      old_password: "{{ harbor.initial_admin_pw }}"
+    body_format: json
+
+- name: Get project 1 (default public library)
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/projects/1"
+    validate_certs: false
+    return_content: yes
+    status_code: [200,400,401,404]
+  register: harbor_project_1
+
+- name: Delete default library public project
+  when: harbor_project_1.status in [200,400,401]
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    follow_redirects: no
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/projects/1"
+    validate_certs: false
+    method: DELETE
+    status_code: [200,500]
+
+
+
+- name: Get projects
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/projects"
+    validate_certs: false
+    return_content: yes
+  register: harbor_projects
+
+- name: Configure projects in Harbor
+  when:
+  - harbor.projects is defined
+  - harbor_projects.x_total_count == "0"  or '{{ harbor_project_name }}' not in harbor_projects.json | json_query('[].name')
+# Below was old way, kept for interest as comment
+#  - "'\"name\": \"{{ harbor_project_name }}\"' not in harbor_projects.content"
+  vars:
+    harbor_project_name: "{{ harbor_project.key }}"
+    harbor_project_settings: "{{ harbor_project_defaults | combine(harbor_project.value) }}"
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    follow_redirects: no
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/projects"
+    validate_certs: false
+    status_code: [201]
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body:
+      project_name: "{{ harbor_project_name }}"
+      metadata:
+        public: "{{ harbor_project_settings.public }}"
+      count_limit: -1 # Because issues integers are put into a string and will fail, therefor no template var now
+      storage_limit: -1 # Because issues integers are put into a string and will fail, theref or no template var now
+    body_format: json
+  with_dict: "{{ harbor.projects }}"
+  loop_control:
+    loop_var: harbor_project
+
+- name: Re-read projects
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/projects"
+    validate_certs: false
+    return_content: yes
+  register: harbor_projects
+
+- name: Set fact harbor_project_id
+  when: item.name is defined
+  set_fact:
+    harbor_project_id: "{{ harbor_project_id | combine({ item.name: item.project_id } ) }}"
+  loop: "{{ harbor_projects.json }}"
+
+# Create user groups in Harbor
+- name: Configure groups in Harbor
+  when:
+  - harbor.projects is defined
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    follow_redirects: no
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/usergroups"
+    validate_certs: false
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body:
+      group_name: "{{ item }}"
+      ldap_group_dn: "cn={{ item }},ou=groups,{{ ldap_base_dn }}"
+      group_type: 1
+      # id: 0
+    body_format: json
+    status_code: [201,409]
+  with_items:
+    - "{{ harbor.groups }}"
+
+- name: Make sure only admins can create projects
+  when:
+  - harbor.projects is defined
+  uri:
+    user: "admin"
+    password: "{{ harbor_admin_pw }}"
+    force_basic_auth: yes
+    follow_redirects: no
+    url: "https://{{ harbor.core.fqdn }}/api/v2.0/configurations"
+    validate_certs: false
+    method: PUT
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+      "project_creation_restriction": "adminonly"
+      }
+    body_format: json
+    status_code: 200
+  with_dict: "{{ harbor.projects }}"
+  loop_control:
+    loop_var: harbor_project
