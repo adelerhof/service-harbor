@@ -36,46 +36,10 @@ The harbor url can be changed via:
 harbor_portal_name: harbor<name>
 ```
 
-Dependencies
-------------
-
-Example Playbook
-----------------
-
-Define variables to create a general admin users:
-
-```yaml
-customerusers:
-  - email: appfactory@kpn.com
-    firstname: jan
-    k8sroles: '{{ afd0_harbor_admin }}'
-    lastname: janssen
-    password: '{SSHA}bqlPTgd5NYXEx+csHR54Kmv3sfQ3zPg5'
-    user: jjanssen
-
-afd0_harbor_admin:
-  - harbor-users
-  - harbor-admin
-```
-
-Extra LDAP groups can be defined with:
-
-```yaml
-harbor:
-  projects:
-    project1:
-      public: "false"
-    project2:
-      public: "true"
-  groups:
-    - project1-harbor-admin
-    - project1-harbor-maintainer
-```
-
-Get the Harbor password:
+Certificate creation can be done via:
 
 ```bash
-kubectl get secret harbor-users -o jsonpath='{.data.admin}' | base64 -d
+kubectl create secret tls -n harbor harbor-adelerhof-eu-tls --key adelerhof.eu.privkey.pem --cert adelerhof.eu.fullchain.pem --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 If Mod Security is needed, they can be added via Appfactory settings as seen below.

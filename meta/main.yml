@@ -1,7 +1,7 @@
 galaxy_info:
-  author: Appfactory
+  author: E.Adelerhof
   description: Role to deploy harbor
-  company: KPN B.V.
+  company: Adelerhof.eu
 
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value
